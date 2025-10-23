@@ -1,7 +1,9 @@
 class UsersController {
     constructor(usersService, validator) {
         this._usersService = usersService;
-        this._validator = validator;  
+        this._validator = validator; 
+        
+        this.addUsersController = this.addUsersController.bind(this);
     };
 
     async addUsersController(req, res) {
