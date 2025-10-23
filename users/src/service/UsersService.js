@@ -21,11 +21,11 @@ class UsersService {
     };
 
     async addUsersService(username, password, fullname) {
-        await this._verifyUsername(username);
+        await this.verifyUsername(username);
 
         const user_id = `user-${nanoid(16)}`;
-        const hashedPassword = bcrypt.hash(password, 10);
-
+        const hashedPassword = await bcrypt.hash(password, 10);
+        
         const query = {
             text: `INSERT INTO users(user_id, username, password, fullname) VALUES($1, $2, $3, $4) RETURNING user_id`,
             values: [user_id, username, hashedPassword, fullname]
