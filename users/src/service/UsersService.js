@@ -21,6 +21,8 @@ class UsersService {
     };
 
     async addUsersService(username, password, fullname) {
+        await this._verifyUsername(username);
+        
         const user_id = `user-${nanoid(16)}`;
         const hashedPassword = bcrypt.hash(password, 10);
 
