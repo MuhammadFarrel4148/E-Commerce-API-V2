@@ -4,6 +4,8 @@ class AuthenticationsController {
         this._usersService = usersService;
         this._tokenManager = tokenManager;
         this._validator = validator;
+
+        this.addAuthenticationsController = this.addAuthenticationsController.bind(this);
     };
 
     async addAuthenticationsController(req, res) {
