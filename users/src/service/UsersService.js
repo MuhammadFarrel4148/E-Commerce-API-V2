@@ -8,6 +8,18 @@ class UsersService {
         this._pool = new Pool();
     }
 
+    async verifyUsername(username) {
+        const query = {
+            text: `SELECT * FROM users WHERE username = $1`,
+            values: [username]
+        };
+        const result = await this._pool.query(query);
+
+        if(result.rows.length > 0) {
+            throw new InvariantError('Username telah digunakan');
+        };
+    };
+
     async addUsersService(username, password, fullname) {
         const user_id = `user-${nanoid(16)}`;
         const hashedPassword = bcrypt.hash(password, 10);
