@@ -24,7 +24,16 @@ class AddressUsersController {
     };
 
     async putAddressUsersController(req, res) {
-        // ambil 
+        await this._validator.validatePutAddressPayload(req.body);
+
+        const { street, city, state, country } = req.body;
+
+        await this._addressUsersService.putAddressUsersService(street, city, state, country);
+
+        res.status(201).json({
+            status: 'success',
+            message: 'Data berhasil diubah'
+        });
     };  
 };
 
