@@ -4,6 +4,7 @@ class AddressUsersController {
         this._validator = validator;
 
         this.addAddressUsersController = this.addAddressUsersController.bind(this);
+        this.putAddressUsersController = this.putAddressUsersController.bind(this);
     };
 
     async addAddressUsersController(req, res) {
@@ -21,6 +22,10 @@ class AddressUsersController {
             }
         });
     };
+
+    async putAddressUsersController(req, res) {
+        // ambil 
+    };  
 };
 
 module.exports = AddressUsersController;

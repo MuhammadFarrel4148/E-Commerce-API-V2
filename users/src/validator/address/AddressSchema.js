@@ -7,4 +7,14 @@ const addAddressSchema = Joi.object({
     country: Joi.string().required()
 });
 
-module.exports = addAddressSchema;
+const putAddressSchema = Joi.object({
+    street: Joi.string().allow(''),
+    city: Joi.string().allow(''),
+    state: Joi.string().allow(''),
+    country: Joi.string().allow('')
+}).min(1);
+
+module.exports = {
+    addAddressSchema,
+    putAddressSchema
+};
