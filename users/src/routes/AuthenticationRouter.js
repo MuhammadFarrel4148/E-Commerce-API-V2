@@ -11,5 +11,6 @@ const usersService = new UserService();
 const authenticationsController = new AuthenticationsController(authenticationsService, usersService, TokenManager, AuthenticationsValidator);
 
 authenticationRouter.post('/add', authenticationsController.addAuthenticationsController);
+authenticationRouter.put('put', authenticationsController.putAuthenticationsController);
 
 module.exports = authenticationRouter;
