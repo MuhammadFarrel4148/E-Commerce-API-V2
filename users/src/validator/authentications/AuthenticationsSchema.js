@@ -5,4 +5,11 @@ const AuthenticationsSchema = Joi.object({
     password: Joi.string().required()
 });
 
-module.exports = AuthenticationsSchema;
+const putAuthenticationsSchema = Joi.object({
+    refreshToken: Joi.string().required()
+})
+
+module.exports = {
+    AuthenticationsSchema,
+    putAuthenticationsSchema
+};
