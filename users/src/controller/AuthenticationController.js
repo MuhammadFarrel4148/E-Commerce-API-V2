@@ -6,6 +6,7 @@ class AuthenticationsController {
         this._validator = validator;
 
         this.addAuthenticationsController = this.addAuthenticationsController.bind(this);
+        this.putAuthenticationsController = this.putAuthenticationsController.bind(this);
     };
 
     async addAuthenticationsController(req, res) {
@@ -24,6 +25,24 @@ class AuthenticationsController {
             data: {
                 accessToken,
                 refreshToken
+            }
+        });
+    };
+
+    async putAuthenticationsController(req, res) {
+        await this._validator.validatePutAuthenticationsPayload(req.body);
+
+        const { refreshToken } = req.body;
+
+        await this._authenticationsService.verifyToken(refreshToken);
+
+        const userId = await this._tokenManager.updateAccessToken(refreshToken);
+        const accessToken = await this._tokenManager.generateAccessToken({ userId });
+
+        res.status(201).json({
+            status: 'success',
+            data: {
+                accessToken
             }
         });
     };

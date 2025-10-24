@@ -1,8 +1,21 @@
 const { Pool } = require('pg');
+const AuthenticationError = require('../exceptions/AuthenticationError');
 
 class AuthenticationsService {
     constructor() {
         this._pool = new Pool();
+    };
+
+    async verifyToken(token) {
+        const query = {
+            text: `SELECT * FROM token WHERE token = $1`,
+            values: [token]
+        };
+        const result = await this._pool.query(query);
+
+        if(!result.rows.length) {
+            throw new AuthenticationError('Kredensial yang diberikan salah');
+        };
     };
 
     async addTokenService(token) {
