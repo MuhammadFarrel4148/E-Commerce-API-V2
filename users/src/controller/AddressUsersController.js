@@ -9,7 +9,7 @@ class AddressUsersController {
     async addAddressUsersController(req, res) {
         await this._validator.validateAddAddressPayload(req.body);
 
-        const { userId } = req.user.userId;
+        const { userId } = req.user;
         const { street, city, state, country } = req.body;
 
         const addressId = await this._addressUsersService.addAddressUsersService(street, city, state, country, userId);
