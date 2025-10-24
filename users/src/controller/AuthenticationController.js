@@ -46,6 +46,21 @@ class AuthenticationsController {
             }
         });
     };
+
+    async deleteAuthenticationsController(req, res) {
+        await this._validator.validatePutAuthenticationsPayload(req.body);
+
+        const { refreshToken } = req.body;
+
+        await this._authenticationsService.verifyToken(refreshToken);
+        
+        await this._authenticationsService.deleteTokenService(refreshToken);
+
+        res.status(201).json({
+            status: 'success',
+            message: 'Token berhasil dihapus'
+        });
+    };
 };
 
 module.exports = AuthenticationsController;

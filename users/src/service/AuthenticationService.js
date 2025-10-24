@@ -25,6 +25,14 @@ class AuthenticationsService {
         };
         await this._pool.query(query);
     };
+
+    async deleteTokenService(token) {
+        const query = {
+            text: `DELETE FROM token WHERE token = $1`,
+            values: [token]
+        };
+        await this._pool.query(query);
+    };
 };
 
 module.exports = AuthenticationsService;
