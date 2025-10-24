@@ -10,6 +10,6 @@ const addressUsersService = new AddressUsersService();
 const addressUsersController = new AddressUsersController(addressUsersService, AddressValidator);
 
 addressRouter.post('/add', authorizationsService.AuthMiddleware, addressUsersController.addAddressUsersController);
-addressRouter.patch('/put', authorizationsService.AuthMiddleware, addressUsersController.putAddressUsersController);
+addressRouter.put('/put', authorizationsService.AuthMiddleware, addressUsersController.putAddressUsersController);
 
 module.exports = addressRouter;
