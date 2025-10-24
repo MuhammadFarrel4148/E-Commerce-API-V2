@@ -22,6 +22,41 @@ class AddressUsersService {
 
         return result.rows[0].address_id;
     };
+
+    async putAddressUsersService(street, city, state, country, userId) {
+        const fieldsUpdate = [];
+        const valuesUpdate = [];
+        let paramIndex = 1;
+
+        if(street !== undefined) {
+            fieldsUpdate.push(`street = $${paramIndex++}`);
+            valuesUpdate.push(street);
+        };
+
+        if(city !== undefined) {
+            fieldsUpdate.push(`city = $${paramIndex++}`);
+            valuesUpdate.push(city);
+        };
+
+        if(state !== undefined) {
+            fieldsUpdate.push(`state = $${paramIndex++}`);
+            valuesUpdate.push(state);
+        };
+
+        if(country !== undefined) {
+            fieldsUpdate.push(`country = $${paramIndex++}`);
+            valuesUpdate.push(country);
+        };
+
+        const condition = `WHERE user_id = $${paramIndex++}`;
+        valuesUpdate.push(userId);
+
+        const query = {
+            text: `UPDATE Address SET ${fieldsUpdate.join(', ')} ${condition}`,
+            values: valuesUpdate
+        };
+        await this._pool.query(query);
+    };
 };
 
 module.exports = AddressUsersService;

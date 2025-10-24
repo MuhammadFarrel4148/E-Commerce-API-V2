@@ -26,9 +26,10 @@ class AddressUsersController {
     async putAddressUsersController(req, res) {
         await this._validator.validatePutAddressPayload(req.body);
 
+        const { userId } = req.user;
         const { street, city, state, country } = req.body;
 
-        await this._addressUsersService.putAddressUsersService(street, city, state, country);
+        await this._addressUsersService.putAddressUsersService(street, city, state, country, userId);
 
         res.status(201).json({
             status: 'success',
