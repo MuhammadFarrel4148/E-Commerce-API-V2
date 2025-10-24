@@ -7,6 +7,7 @@ class AuthenticationsController {
 
         this.addAuthenticationsController = this.addAuthenticationsController.bind(this);
         this.putAuthenticationsController = this.putAuthenticationsController.bind(this);
+        this.deleteAuthenticationsController = this.deleteAuthenticationsController.bind(this);
     };
 
     async addAuthenticationsController(req, res) {

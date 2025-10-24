@@ -12,5 +12,6 @@ const authenticationsController = new AuthenticationsController(authenticationsS
 
 authenticationRouter.post('/add', authenticationsController.addAuthenticationsController);
 authenticationRouter.put('/put', authenticationsController.putAuthenticationsController);
+authenticationRouter.delete('/delete', authenticationsController.deleteAuthenticationsController);
 
 module.exports = authenticationRouter;
