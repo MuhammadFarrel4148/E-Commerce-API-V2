@@ -1,2 +1,3 @@
 /users/.env
 /users/node_modules/
+/product/.env
