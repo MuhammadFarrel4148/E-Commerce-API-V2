@@ -3,6 +3,7 @@ const { nanoid } = require('nanoid');
 const bcrypt = require('bcrypt');
 const InvariantError = require('../exceptions/InvariantError');
 const AuthenticationError = require('../exceptions/AuthenticationError');
+const NotFoundError = require('../exceptions/NotFoundError');
 
 class UsersService {
     constructor() {
@@ -29,7 +30,7 @@ class UsersService {
         const result = await this._pool.query(query);
 
         if(!result.rows.length) {
-            throw new AuthenticationError('Kredensial yang diberikan salah');
+            throw new NotFoundError('Username tidak ditemukan');
         };
 
         const { user_id: id, password: hashedPassword } = result.rows[0];
