@@ -33,7 +33,7 @@ func NewInventoryService(repo repository.InventoryRepository) InventoryService {
 
 func (s *inventoryService) CreateInventory(inputInventory InputInventory) (*model.Inventory, error) {
 	if inputInventory.StockLevel < 0 {
-		return nil, errors.New("Stock level can't be negative")
+		return nil, errors.New("stock level can't be negative")
 	}
 
 	inventory := &model.Inventory{
@@ -62,7 +62,7 @@ func (s *inventoryService) GetInventoryByID(ID uint) (*model.Inventory, error) {
 
 func (s *inventoryService) UpdateInventoryByID(ID uint, updateInventory *UpdateInventory) (*model.Inventory, error) {
 	if *updateInventory.StockLevel < 0 {
-		return nil, errors.New("Stock level can't be negative")
+		return nil, errors.New("stock level can't be negative")
 	}
 
 	updatesMap := make(map[string]interface{})
@@ -76,7 +76,7 @@ func (s *inventoryService) UpdateInventoryByID(ID uint, updateInventory *UpdateI
 	}
 
 	if len(updatesMap) == 0 {
-		return nil, errors.New("No change update")
+		return nil, errors.New("no change updated")
 	}
 
 	inventory, err := s.repo.UpdateInventoryByID(ID, updatesMap)
