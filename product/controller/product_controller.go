@@ -37,8 +37,10 @@ func (h *ProductController) CreateProduct(c *gin.Context) {
 		return
 	}
 
+	productResponse := service.FormatProduct(product)
+
 	c.JSON(http.StatusCreated, gin.H{
-		"data": product,
+		"data": productResponse,
 	})
 }
 

@@ -18,6 +18,19 @@ type UpdateProductInput struct {
 	CategoryID *uint    `json:"category_id"`
 }
 
+type CategoryResponse struct {
+	CategoryID          uint
+	CategoryName        string
+	CategoryDescription string
+}
+
+type ProductResponse struct {
+	ProductID uint
+	Name      string
+	Price     float64
+	Category  CategoryResponse
+}
+
 type ProductService interface {
 	CreateProductService(inputProduct CreateProductInput) (*model.Product, error)
 	GetProductServiceByID(ID uint) (*model.Product, error)
@@ -31,6 +44,23 @@ type productService struct {
 
 func NewProductService(repo repository.ProductRepository) ProductService {
 	return &productService{repo}
+}
+
+func FormatProduct(product *model.Product) ProductResponse {
+	categoryResponse := CategoryResponse{
+		CategoryID: product.Category.CategoryID,
+		CategoryName: product.Category.Name,
+		CategoryDescription: product.Category.Description,
+	}
+
+	productResponse := ProductResponse{
+		ProductID: product.ProductID,
+		Name: product.Name,
+		Price: product.Price,
+		Category: categoryResponse,
+	}
+
+	return productResponse
 }
 
 func (s *productService) CreateProductService(inputProduct CreateProductInput) (*model.Product, error) {
