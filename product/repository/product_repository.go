@@ -7,6 +7,7 @@ import (
 )
 
 type ProductRepository interface {
+	PreloadProduct(ID uint) (*model.Product, error)
 	CreateProduct(product *model.Product) error
 	GetProductByID(ID uint) (*model.Product, error)
 	UpdateProductByID(ID uint, updateProduct map[string]interface{}) (*model.Product, error)
@@ -19,6 +20,18 @@ type productRepository struct {
 
 func NewProductRepository(db *gorm.DB) ProductRepository {
 	return &productRepository{db}
+}
+
+func (r *productRepository) PreloadProduct(ID uint) (*model.Product, error) {
+	var product *model.Product
+
+	err := r.db.Preload("Category").First(&product, ID).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return product, nil
 }
 
 func (r *productRepository) CreateProduct(product *model.Product) error {

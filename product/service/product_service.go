@@ -53,7 +53,13 @@ func (s *productService) CreateProductService(inputProduct CreateProductInput) (
 		return nil, err
 	}
 
-	return product, nil
+	productOutput, err := s.repo.PreloadProduct(product.ProductID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return productOutput, nil
 }
 
 func (s *productService) GetProductServiceByID(ID uint) (*model.Product, error) {
