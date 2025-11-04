@@ -24,10 +24,15 @@ func main() {
 	categoryService := service.NewCategoryService(categoryRepository)
 	categoryController := controller.NewCategoryController(categoryService)
 
+	inventoryRepository := repository.NewInventoryRepository(db)
+	inventoryService := service.NewInventoryService(inventoryRepository)
+	inventoryController := controller.NewInventoryController(inventoryService)
+
 	router := gin.Default()
 
 	apiProduct := router.Group("/product/v1")
 	apiCategory := router.Group("/category/v1")
+	apiInventory := router.Group("/inventory/v1")
 
 	apiProduct.POST("/product", productController.CreateProduct)
 	apiProduct.GET("/product/:id", productController.GetProductByID)
@@ -38,6 +43,11 @@ func main() {
 	apiCategory.GET("/category/:id", categoryController.GetCategoryByID)
 	apiCategory.PUT("/category/:id", categoryController.UpdateCategoryByID)
 	apiCategory.DELETE("/category/:id", categoryController.DeleteCategoryByID)
+
+	apiInventory.POST("/inventory", inventoryController.CreateInventory)
+	apiInventory.GET("/inventory/:id", inventoryController.GetInventoryByID)
+	apiInventory.PUT("/inventory/:id", inventoryController.UpdateInventoryByID)
+	apiInventory.DELETE("/inventory/:id", inventoryController.DeleteInventoryByID)
 
 	port := os.Getenv("SERVER_PORT")
 	if port == "" {
