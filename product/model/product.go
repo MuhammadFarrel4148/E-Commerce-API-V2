@@ -15,7 +15,7 @@ type Product struct {
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
 	CategoryID uint     `gorm:"not null"`
-	Category   Category `gorm:"foreignKey:CategoryID"`
+	Category   Category
 }
 
 type Inventory struct {
@@ -23,5 +23,5 @@ type Inventory struct {
 	StockLevel  int  `gorm:"not null;default:0"`
 	UpdatedAt   time.Time
 	ProductID   uint    `gorm:"not null;unique"`
-	Product     Product `gorm:"foreignKey:ProductID"`
+	Product     Product
 }
