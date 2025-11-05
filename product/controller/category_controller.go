@@ -1,12 +1,23 @@
 package controller
 
 import (
+	"encoding/json"
+	"fmt"
+	"log"
 	"net/http"
+	"product/caching"
 	"product/service"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
+
+type CategoryOutput struct {
+	CategoryID	uint	`json:"category_id"`
+	Name		string	`json:"name"`
+	Description	string	`json:"description"`
+}
 
 type CategoryController struct {
 	categoryService service.CategoryService
@@ -20,85 +31,153 @@ func (h *CategoryController) CreateCategory(c *gin.Context) {
 	var input service.InputCategory
 
 	err := c.ShouldBindJSON(&input)
-
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
+			"status": "fail",
+			"error":  err.Error(),
 		})
 		return
 	}
 
 	category, err := h.categoryService.CreateCategoryService(input)
-
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status": "fail",
+			"error":  err.Error(),
 		})
 		return
 	}
 
+	key := fmt.Sprintf("category-%d", category.CategoryID)
+	err = caching.Set(key, category, 15*time.Minute)
+
+	if err != nil {
+		log.Printf("WARNING: Gagal menyimpan cache untuk key %s. Error: %v", key, err)
+	}
+
 	c.JSON(http.StatusCreated, gin.H{
+		"status": "success",
 		"data": category,
 	})
 }
 
 func (h *CategoryController) GetCategoryByID(c *gin.Context) {
-	ID, _ := strconv.Atoi(c.Param("id"))
-
-	product, err := h.categoryService.GetCategoryByID(uint(ID))
-
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{
+	var categoryOutput CategoryOutput
+	
+	ID, err := strconv.Atoi(c.Param("id"))
+	if err != nil || ID <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status": "fail",
 			"error": err.Error(),
 		})
 		return
 	}
 
+	key := fmt.Sprintf("category-%d", ID)
+	category, err := caching.Get(key)
+
+	if err == nil && category != "" {
+		err = json.Unmarshal([]byte(category), &categoryOutput)
+		if err != nil {
+			c.JSON(http.StatusOK, gin.H{
+				"status": "success",
+				"data": categoryOutput,
+			})
+			return
+		}
+
+		log.Printf("ERROR: Data cache rusak untuk key %s: %v", key, err)
+	}
+
+	categoryFromDB, err := h.categoryService.GetCategoryByID(uint(ID))
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"status": "success",
+			"error": err.Error(),
+		})
+		return
+	}
+
+	err = caching.Set(key, categoryFromDB, 15*time.Minute)
+	if err != nil {
+		log.Printf("WARNING: Gagal set cache untuk key %s: %v", key, err)
+	}
+
 	c.JSON(http.StatusOK, gin.H{
-		"data": product,
+		"status": "success",
+		"data": categoryFromDB,
 	})
 }
 
 func (h *CategoryController) UpdateCategoryByID(c *gin.Context) {
 	var input service.UpdateCategory
 
-	ID, _ := strconv.Atoi(c.Param("id"))
-	err := c.ShouldBindJSON(&input)
+	ID, err := strconv.Atoi(c.Param("id"))
+	if err != nil || ID <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status": "fail",
+			"error": err.Error(),
+		})
+		return
+	}
 
+	err = c.ShouldBindJSON(&input)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
+			"status": "fail",
 			"error": err.Error(),
 		})
 		return
 	}
 
 	category, err := h.categoryService.UpdateCategoryByID(uint(ID), &input)
-
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status": "fail",
 			"error": err.Error(),
 		})
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{
+	key := fmt.Sprintf("category-%d", ID)
+	err = caching.Set(key, category, 15*time.Minute)
+	if err != nil {
+		log.Printf("WARNING: Gagal set cache untuk key %s: %v", key, err)
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"status": "success",
 		"data": category,
 	})
 }
 
 func (h *CategoryController) DeleteCategoryByID(c *gin.Context) {
-	ID, _ := strconv.Atoi(c.Param("id"))
-
-	category, err := h.categoryService.DeleteCategoryByID(uint(ID))
-
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{
+	ID, err := strconv.Atoi(c.Param("id"))
+	if err != nil || ID <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status": "fail",
 			"error": err.Error(),
 		})
 		return
 	}
 
+	category, err := h.categoryService.DeleteCategoryByID(uint(ID))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status": "fail",
+			"error": err.Error(),
+		})
+		return
+	}
+
+	key := fmt.Sprintf("category-%d", ID)
+	err = caching.Del(key)
+	if err != nil {
+		log.Printf("WARNING: Gagal set cache untuk key %s: %v", key, err)
+	}
+
 	c.JSON(http.StatusOK, gin.H{
+		"status": "success",
 		"data": category,
 	})
 }
