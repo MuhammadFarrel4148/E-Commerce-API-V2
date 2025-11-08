@@ -12,17 +12,64 @@ spec:
       labels:
         app: users-deployment
     spec:
+      initContainers:
+      - name: migrations-runner
+        image: ghcr.io/muhammadfarrel4148/service-users-ecommerce:latest
+        
+        command: ["npm", "run", "migrate", "up"] 
+
+        env:
+          - name: PGHOST
+            value: "postgres-service"
+          - name: PGUSER
+            valueFrom:
+              secretKeyRef:
+                name: postgres-secret
+                key: POSTGRES_USER
+          - name: PGPASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: postgres-secret
+                key: POSTGRES_PASSWORD
+          - name: PGDATABASE
+            valueFrom:
+              secretKeyRef:
+                name: postgres-secret
+                key: POSTGRES_DB
+          - name: PGPORT
+            value: "5432"
+
       containers:
       - name: users-container 
         image: ghcr.io/muhammadfarrel4148/service-users-ecommerce:latest
         ports:
         - containerPort: 8000
 
-        envFrom: 
-        - configMapRef:
-            name: users-configmap
-        - secretRef:
-            name: users-secret
+        env: 
+        - name: PORT
+          valueFrom:
+            configMapKeyRef:
+              name: users-configmap
+              key: PORT
+        - name: PGHOST
+          value: "postgres-service"
+        - name: PGUSER
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: POSTGRES_USER
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: POSTGRES_PASSWORD
+        - name: PGDATABASE
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: POSTGRES_DB
+        - name: PGPORT
+          value: "5432"
 
       imagePullSecrets:
       - name: ghcr-creds

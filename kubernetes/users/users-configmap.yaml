@@ -4,7 +4,3 @@ metadata:
   name: users-configmap
 data:
   PORT: "8000"
-  PGHOST: "host.minikube.internal"
-  PGUSER: "postgres"
-  PGDATABASE: "db_users"
-  PGPORT: "5432" 
