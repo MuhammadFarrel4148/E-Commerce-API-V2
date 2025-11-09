@@ -1,0 +1,66 @@
+pipeline {
+    agent any
+
+    environment {
+        REGISTRY = "ghcr.io/muhammadfarrel4148"
+        SERVICE_FOLDER = "users"
+        IMAGE_NAME = "service-users-ecommerce"
+        IMAGE_TAG = "latest"
+        DEPLOYMENT_NAME = "users-deployment"
+    }
+
+    stages {
+        stage('Determine Changed Service') {
+            steps {
+                script {
+                    sh "git fetch origin main"
+
+                    changedFiles = sh(
+                        script: "git diff --name-only origin/main...HEAD",
+                        returnStdout: true
+                    ).trim()
+
+                    if(!changedFiles.contains("${SERVICE_FOLDER}/")) {
+                        error "No changes in '${SERVICE_FOLDER}' — stopping pipeline."
+                    }
+                }
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                sh """
+                docker build -t ${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG} ${SERVICE_FOLDER}
+                """
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'ghcr-creds',
+                    usernameVariable: 'GITHUB_USER',
+                    passwordVariable: 'GITHUB_TOKEN'
+                )]) {
+                    sh """
+                    echo $GITHUB_TOKEN | docker login ghcr.io -u $GITHUB_USER --password-stdin
+                    docker push ${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}
+                    """
+                }
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG_FILE')]) {
+                    sh """
+                    export KUBECONFIG=$KUBECONFIG_FILE
+                    
+                    kubectl set image deployment/${DEPLOYMENT_NAME} ${SERVICE_FOLDER}=${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG} -n default
+                    kubectl rollout status deployment/${DEPLOYMENT_NAME} -n default
+                    """
+                }
+            }
+        }
+    }
+}
