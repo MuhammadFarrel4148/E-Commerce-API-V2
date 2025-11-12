@@ -1,17 +1,18 @@
 package repository
 
 import (
+	"context"
 	"product/model"
 
 	"gorm.io/gorm"
 )
 
 type ProductRepository interface {
-	PreloadProduct(ID uint) (*model.Product, error)
-	CreateProduct(product *model.Product) error
-	GetProductByID(ID uint) (*model.Product, error)
-	UpdateProductByID(ID uint, updateProduct map[string]interface{}) (*model.Product, error)
-	DeleteProductByID(ID uint) (*model.Product, error)
+	PreloadProduct(ctx context.Context, ID uint) (*model.Product, error)
+	CreateProduct(ctx context.Context, product *model.Product) error
+	GetProductByID(ctx context.Context, ID uint) (*model.Product, error)
+	UpdateProductByID(ctx context.Context, ID uint, updateProduct map[string]interface{}) (*model.Product, error)
+	DeleteProductByID(ctx context.Context, ID uint) (*model.Product, error)
 }
 
 type productRepository struct {
@@ -22,11 +23,49 @@ func NewProductRepository(db *gorm.DB) ProductRepository {
 	return &productRepository{db}
 }
 
-func (r *productRepository) PreloadProduct(ID uint) (*model.Product, error) {
-	var product *model.Product
+// Helper Get Product By Preload Category
+func (r *productRepository) findProductByID(ctx context.Context, ID uint, preload bool) (*model.Product, error) {
+	var product model.Product
+	db := r.db.WithContext(ctx)
 
-	err := r.db.Preload("Category").First(&product, ID).Error
+	if preload {
+		db = db.Preload("Category")
+	}
 
+	if err := db.First(&product, ID).Error; err != nil {
+		return nil, err
+	}
+
+	return &product, nil
+}
+
+func (r *productRepository) PreloadProduct(ctx context.Context, ID uint) (*model.Product, error) {
+	return r.findProductByID(ctx, ID, true)
+}
+
+func (r *productRepository) CreateProduct(ctx context.Context, product *model.Product) error {
+	if err := r.db.WithContext(ctx).Create(product).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *productRepository) GetProductByID(ctx context.Context, ID uint) (*model.Product, error) {	
+	product, err := r.PreloadProduct(ctx, ID)
+	if err != nil{
+		return nil, err
+	}
+
+	return product, nil
+}
+
+func (r *productRepository) UpdateProductByID(ctx context.Context, ID uint, updateProduct map[string]interface{}) (*model.Product, error) {
+	if err := r.db.Model(&model.Product{}).Where("product_id = ?", ID).Updates(updateProduct).Error; err != nil {
+		return nil, err
+	}
+
+	product, err := r.PreloadProduct(ctx, ID)
 	if err != nil {
 		return nil, err
 	}
@@ -34,59 +73,15 @@ func (r *productRepository) PreloadProduct(ID uint) (*model.Product, error) {
 	return product, nil
 }
 
-func (r *productRepository) CreateProduct(product *model.Product) error {
-	err := r.db.Create(product).Error
-
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (r *productRepository) GetProductByID(ID uint) (*model.Product, error) {
-	var product model.Product
-
-	err := r.db.First(&product, ID).Error
-
+func (r *productRepository) DeleteProductByID(ctx context.Context, ID uint) (*model.Product, error) {
+	product, err := r.PreloadProduct(ctx, ID)
 	if err != nil {
 		return nil, err
 	}
-
-	return &product, nil
-}
-
-func (r *productRepository) UpdateProductByID(ID uint, updateProduct map[string]interface{}) (*model.Product, error) {
-	var product model.Product
-
-	err := r.db.Model(&product).Where("product_id = ?", ID).Updates(updateProduct).Error
-
-	if err != nil {
+	
+	if err := r.db.Delete(&model.Product{}, ID).Error; err != nil {
 		return nil, err
 	}
 
-	err = r.db.Where("product_id = ?", ID).First(&product).Error
-	if err != nil {
-		return nil, err
-	}
-
-	return &product, nil
-}
-
-func (r *productRepository) DeleteProductByID(ID uint) (*model.Product, error) {
-	var product model.Product
-
-	err := r.db.First(&product, ID).Error
-
-	if err != nil {
-		return nil, err
-	}
-
-	err = r.db.Delete(&product).Error
-
-	if err != nil {
-		return nil, err
-	}
-
-	return &product, err
+	return product, nil
 }

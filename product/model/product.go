@@ -2,12 +2,34 @@ package model
 
 import "time"
 
-type Category struct {
-	CategoryID  uint   `gorm:"primaryKey"`
-	Name        string `gorm:"type:varchar(100);not null;unique"`
-	Description string
+// Input Product
+type CreateProductInput struct {
+	Name       string  `json:"name" binding:"required"`
+	Price      float64 `json:"price" binding:"required"`
+	CategoryID uint    `json:"category_id" binding:"required"`
 }
 
+type UpdateProductInput struct {
+	Name       *string  `json:"name"`
+	Price      *float64 `json:"price"`
+	CategoryID *uint    `json:"category_id"`
+}
+
+// Response product
+type CategoryResponse struct {
+	CategoryID          uint
+	CategoryName        string
+	CategoryDescription string
+}
+
+type ProductResponse struct {
+	ProductID uint
+	Name      string
+	Price     float64
+	Category  CategoryResponse
+}
+
+// Table product database
 type Product struct {
 	ProductID  uint    `gorm:"primaryKey"`
 	Name       string  `gorm:"type:varchar(255);not null"`
@@ -18,10 +40,19 @@ type Product struct {
 	Category   Category
 }
 
-type Inventory struct {
-	InventoryID uint `gorm:"primaryKey"`
-	StockLevel  int  `gorm:"not null;default:0"`
-	UpdatedAt   time.Time
-	ProductID   uint    `gorm:"not null;unique"`
-	Product     Product
+func FormatProduct(product Product) ProductResponse {
+	categoryResponse := CategoryResponse{
+		CategoryID:          product.Category.CategoryID,
+		CategoryName:        product.Category.Name,
+		CategoryDescription: product.Category.Description,
+	}
+
+	productResponse := ProductResponse{
+		ProductID: product.ProductID,
+		Name:      product.Name,
+		Price:     product.Price,
+		Category:  categoryResponse,
+	}
+
+	return productResponse
 }

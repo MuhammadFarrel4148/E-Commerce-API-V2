@@ -1,41 +1,17 @@
 package service
 
 import (
-	"errors"
+	"context"
 	"product/model"
 	"product/repository"
+	"product/validate"
 )
 
-type CreateProductInput struct {
-	Name       string  `json:"name" binding:"required"`
-	Price      float64 `json:"price" binding:"required"`
-	CategoryID uint    `json:"category_id" binding:"required"`
-}
-
-type UpdateProductInput struct {
-	Name       *string  `json:"name"`
-	Price      *float64 `json:"price"`
-	CategoryID *uint    `json:"category_id"`
-}
-
-type CategoryResponse struct {
-	CategoryID          uint
-	CategoryName        string
-	CategoryDescription string
-}
-
-type ProductResponse struct {
-	ProductID uint
-	Name      string
-	Price     float64
-	Category  CategoryResponse
-}
-
 type ProductService interface {
-	CreateProductService(inputProduct CreateProductInput) (*model.Product, error)
-	GetProductServiceByID(ID uint) (*model.Product, error)
-	UpdateProductServiceByID(ID uint, inputProduct *UpdateProductInput) (*model.Product, error)
-	DeleteProductServiceByID(ID uint) (*model.Product, error)
+	CreateProductService(ctx context.Context, inputProduct model.CreateProductInput) (*model.ProductResponse, error)
+	GetProductServiceByID(ctx context.Context, ID uint) (*model.Product, error)
+	UpdateProductServiceByID(ctx context.Context, ID uint, inputProduct model.UpdateProductInput) (*model.Product, error)
+	DeleteProductServiceByID(ctx context.Context, ID uint) (*model.Product, error)
 }
 
 type productService struct {
@@ -46,29 +22,9 @@ func NewProductService(repo repository.ProductRepository) ProductService {
 	return &productService{repo}
 }
 
-func FormatProduct(product *model.Product) ProductResponse {
-	categoryResponse := CategoryResponse{
-		CategoryID: product.Category.CategoryID,
-		CategoryName: product.Category.Name,
-		CategoryDescription: product.Category.Description,
-	}
-
-	productResponse := ProductResponse{
-		ProductID: product.ProductID,
-		Name: product.Name,
-		Price: product.Price,
-		Category: categoryResponse,
-	}
-
-	return productResponse
-}
-
-func (s *productService) CreateProductService(inputProduct CreateProductInput) (*model.Product, error) {
-	if inputProduct.Price < 0 {
-		return nil, errors.New("price can't be negative")
-	}
-	if inputProduct.Name == "" {
-		return nil, errors.New("name can't be empty")
+func (s *productService) CreateProductService(ctx context.Context, inputProduct model.CreateProductInput) (*model.ProductResponse, error) {
+	if err := validate.ValidateInputProduct(inputProduct); err != nil {
+		return nil, err
 	}
 
 	product := &model.Product{
@@ -77,53 +33,54 @@ func (s *productService) CreateProductService(inputProduct CreateProductInput) (
 		CategoryID: inputProduct.CategoryID,
 	}
 
-	err := s.repo.CreateProduct(product)
+	if err := s.repo.CreateProduct(ctx, product); err != nil {
+		return nil, err
+	}
+
+	productOutput, err := s.repo.PreloadProduct(ctx, product.ProductID)
 
 	if err != nil {
 		return nil, err
 	}
 
-	productOutput, err := s.repo.PreloadProduct(product.ProductID)
+	productResponseValue := model.FormatProduct(*productOutput)
+	productResponsePointer := &productResponseValue
 
-	if err != nil {
-		return nil, err
-	}
-
-	return productOutput, nil
+	return productResponsePointer, nil
 }
 
-func (s *productService) GetProductServiceByID(ID uint) (*model.Product, error) {
-	product, err := s.repo.GetProductByID(ID)
+func (s *productService) GetProductServiceByID(ctx context.Context, ID uint) (*model.Product, error) {
+	product, err := s.repo.PreloadProduct(ctx, ID)
 
 	if err != nil {
 		return nil, err
 	}
 
-	return product, err
+	return product, nil
 }
 
-func (s *productService) UpdateProductServiceByID(ID uint, inputProduct *UpdateProductInput) (*model.Product, error) {
-	if inputProduct.Price != nil && *inputProduct.Price < 0 {
-		return nil, errors.New("price can't be negative")
+func (s *productService) UpdateProductServiceByID(ctx context.Context, ID uint, inputProduct model.UpdateProductInput) (*model.Product, error) {
+	if err := validate.ValidateUpdateProduct(inputProduct); err != nil {
+		return nil, err
 	}
 
 	updatesMap := make(map[string]interface{})
 
 	if inputProduct.Name != nil {
-		updatesMap["name"] = *inputProduct.Name
+		updatesMap["name"] = inputProduct.Name
 	}
 	if inputProduct.Price != nil {
-		updatesMap["price"] = *inputProduct.Price
+		updatesMap["price"] = inputProduct.Price
 	}
 	if inputProduct.CategoryID != nil {
-		updatesMap["category_id"] = *inputProduct.CategoryID
+		updatesMap["category_id"] = inputProduct.CategoryID
 	}
 
 	if len(updatesMap) == 0 {
-		return s.repo.GetProductByID(ID)
+		return s.repo.GetProductByID(ctx, ID)
 	}
 
-	updatedProduct, err := s.repo.UpdateProductByID(ID, updatesMap)
+	updatedProduct, err := s.repo.UpdateProductByID(ctx, ID, updatesMap)
 
 	if err != nil {
 		return nil, err
@@ -132,8 +89,8 @@ func (s *productService) UpdateProductServiceByID(ID uint, inputProduct *UpdateP
 	return updatedProduct, nil
 }
 
-func (s *productService) DeleteProductServiceByID(ID uint) (*model.Product, error) {
-	product, err := s.repo.DeleteProductByID(ID)
+func (s *productService) DeleteProductServiceByID(ctx context.Context, ID uint) (*model.Product, error) {
+	product, err := s.repo.DeleteProductByID(ctx, ID)
 
 	if err != nil {
 		return nil, err

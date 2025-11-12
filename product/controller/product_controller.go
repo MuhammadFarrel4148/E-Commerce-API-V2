@@ -2,6 +2,7 @@ package controller
 
 import (
 	"net/http"
+	"product/model"
 	"product/service"
 	"strconv"
 
@@ -17,90 +18,112 @@ func NewProductController(productService service.ProductService) *ProductControl
 }
 
 func (h *ProductController) CreateProduct(c *gin.Context) {
-	var input service.CreateProductInput
+	var inputProduct model.CreateProductInput
 
-	err := c.ShouldBindJSON(&input)
-
-	if err != nil {
+	if err := c.ShouldBindJSON(&inputProduct); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
+			"status": "fail",
+			"error":  err.Error(),
 		})
 		return
 	}
 
-	product, err := h.productService.CreateProductService(input)
+	product, err := h.productService.CreateProductService(c.Request.Context(), inputProduct)
 
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
+			"status": "fail",
+			"error":  err.Error(),
 		})
 		return
 	}
-
-	productResponse := service.FormatProduct(product)
 
 	c.JSON(http.StatusCreated, gin.H{
-		"data": productResponse,
+		"status": "success",
+		"data":   product,
 	})
 }
 
 func (h *ProductController) GetProductByID(c *gin.Context) {
-	ID, _ := strconv.Atoi(c.Param("id"))
+	ID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status": "fail",
+			"error":  "invalid product ID",
+		})
+	}
 
-	product, err := h.productService.GetProductServiceByID(uint(ID))
-
+	product, err := h.productService.GetProductServiceByID(c.Request.Context(), uint(ID))
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{
-			"error": "product not found",
+			"status": "fail",
+			"error":  "product not found",
 		})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"data": product,
+		"status": "success",
+		"data":   product,
 	})
 }
 
 func (h *ProductController) UpdateProductByID(c *gin.Context) {
-	var updateProduct service.UpdateProductInput
+	var updateProduct model.UpdateProductInput
 
-	ID, _ := strconv.Atoi(c.Param("id"))
-	err := c.ShouldBindJSON(&updateProduct)
-
+	ID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
+			"status": "fail",
+			"error":  "invalid product ID",
 		})
 		return
 	}
 
-	product, err := h.productService.UpdateProductServiceByID(uint(ID), &updateProduct)
-
+	err = c.ShouldBindJSON(&updateProduct)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
+			"status": "fail",
+			"error":  err.Error(),
 		})
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{
-		"data": product,
-	})
-}
-
-func (h *ProductController) DeleteProductByID(c *gin.Context) {
-	ID, _ := strconv.Atoi(c.Param("id"))
-
-	product, err := h.productService.DeleteProductServiceByID(uint(ID))
-
+	product, err := h.productService.UpdateProductServiceByID(c.Request.Context(), uint(ID), updateProduct)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"error": "product not found",
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status": "fail",
+			"error":  err.Error(),
 		})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"data": product,
+		"status": "success",
+		"data":   product,
+	})
+}
+
+func (h *ProductController) DeleteProductByID(c *gin.Context) {
+	ID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status": "fail",
+			"error":  "invalid product ID",
+		})
+	}
+
+	product, err := h.productService.DeleteProductServiceByID(c.Request.Context(), uint(ID))
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"status": "fail",
+			"error":  "product not found",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"status": "success",
+		"data":   product,
 	})
 }
