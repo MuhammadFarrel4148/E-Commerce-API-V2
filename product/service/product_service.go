@@ -77,7 +77,7 @@ func (s *productService) UpdateProductServiceByID(ctx context.Context, ID uint, 
 	}
 
 	if len(updatesMap) == 0 {
-		return s.repo.GetProductByID(ctx, ID)
+		return s.repo.PreloadProduct(ctx, ID)
 	}
 
 	updatedProduct, err := s.repo.UpdateProductByID(ctx, ID, updatesMap)

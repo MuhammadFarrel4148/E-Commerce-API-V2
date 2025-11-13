@@ -1,7 +1,9 @@
 package controller
 
 import (
+	"errors"
 	"net/http"
+	"product/exceptions"
 	"product/model"
 	"product/service"
 	"strconv"
@@ -19,6 +21,7 @@ func NewProductController(productService service.ProductService) *ProductControl
 
 func (h *ProductController) CreateProduct(c *gin.Context) {
 	var inputProduct model.CreateProductInput
+	var validationErr *exceptions.ErrValidation
 
 	if err := c.ShouldBindJSON(&inputProduct); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -31,11 +34,19 @@ func (h *ProductController) CreateProduct(c *gin.Context) {
 	product, err := h.productService.CreateProductService(c.Request.Context(), inputProduct)
 
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"status": "fail",
-			"error":  err.Error(),
-		})
-		return
+		if errors.As(err, &validationErr) {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"status": "fail",
+				"error":  validationErr.Details,
+			})
+			return
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"status": "fail",
+				"error":  "terjadi kesalahan pada server kami",
+			})
+			return
+		}
 	}
 
 	c.JSON(http.StatusCreated, gin.H{
@@ -51,15 +62,25 @@ func (h *ProductController) GetProductByID(c *gin.Context) {
 			"status": "fail",
 			"error":  "invalid product ID",
 		})
+		return
 	}
 
 	product, err := h.productService.GetProductServiceByID(c.Request.Context(), uint(ID))
+
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"status": "fail",
-			"error":  "product not found",
-		})
-		return
+		if errors.Is(err, exceptions.ErrNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{
+				"status": "fail",
+				"error":  err.Error(),
+			})
+			return
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"status": "fail",
+				"error":  "terjadi kesalahan pada server kami",
+			})
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -91,11 +112,19 @@ func (h *ProductController) UpdateProductByID(c *gin.Context) {
 
 	product, err := h.productService.UpdateProductServiceByID(c.Request.Context(), uint(ID), updateProduct)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"status": "fail",
-			"error":  err.Error(),
-		})
-		return
+		if errors.Is(err, exceptions.ErrNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{
+				"status": "fail",
+				"error":  err.Error(),
+			})
+			return
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"status": "fail",
+				"error":  "terjadi kesalahan pada server kami",
+			})
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -111,15 +140,24 @@ func (h *ProductController) DeleteProductByID(c *gin.Context) {
 			"status": "fail",
 			"error":  "invalid product ID",
 		})
+		return
 	}
 
 	product, err := h.productService.DeleteProductServiceByID(c.Request.Context(), uint(ID))
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"status": "fail",
-			"error":  "product not found",
-		})
-		return
+		if errors.Is(err, exceptions.ErrNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{
+				"status": "fail",
+				"error": err.Error(),
+			})
+			return
+		} else {
+			c.JSON(http.StatusNotFound, gin.H{
+				"status": "fail",
+				"error":  "terjadi kesalahan pada server kami",
+			})
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{

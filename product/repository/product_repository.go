@@ -2,6 +2,8 @@ package repository
 
 import (
 	"context"
+	"errors"
+	"product/exceptions"
 	"product/model"
 
 	"gorm.io/gorm"
@@ -10,7 +12,6 @@ import (
 type ProductRepository interface {
 	PreloadProduct(ctx context.Context, ID uint) (*model.Product, error)
 	CreateProduct(ctx context.Context, product *model.Product) error
-	GetProductByID(ctx context.Context, ID uint) (*model.Product, error)
 	UpdateProductByID(ctx context.Context, ID uint, updateProduct map[string]interface{}) (*model.Product, error)
 	DeleteProductByID(ctx context.Context, ID uint) (*model.Product, error)
 }
@@ -33,7 +34,11 @@ func (r *productRepository) findProductByID(ctx context.Context, ID uint, preloa
 	}
 
 	if err := db.First(&product, ID).Error; err != nil {
-		return nil, err
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, exceptions.ErrNotFound
+		} else {
+			return nil, err
+		}
 	}
 
 	return &product, nil
@@ -49,15 +54,6 @@ func (r *productRepository) CreateProduct(ctx context.Context, product *model.Pr
 	}
 
 	return nil
-}
-
-func (r *productRepository) GetProductByID(ctx context.Context, ID uint) (*model.Product, error) {	
-	product, err := r.PreloadProduct(ctx, ID)
-	if err != nil{
-		return nil, err
-	}
-
-	return product, nil
 }
 
 func (r *productRepository) UpdateProductByID(ctx context.Context, ID uint, updateProduct map[string]interface{}) (*model.Product, error) {
