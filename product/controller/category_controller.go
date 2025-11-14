@@ -38,11 +38,19 @@ func (h *CategoryController) CreateCategory(c *gin.Context) {
 
 	category, err := h.categoryService.CreateCategoryService(input)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"status": "fail",
-			"error":  err.Error(),
-		})
-		return
+		if errors.Is(err, exceptions.ErrNameFound) {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"status": "fail",
+				"error": err.Error(),
+			})
+			return
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"status": "fail",
+				"error":  err.Error(),
+			})
+			return
+		}
 	}
 
 	key := fmt.Sprintf("category-%d", category.CategoryID)

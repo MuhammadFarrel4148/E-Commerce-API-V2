@@ -3,6 +3,7 @@ package exceptions
 import "errors"
 
 var ErrNotFound = errors.New("resource not found")
+var ErrNameFound = errors.New("name description found")
 
 type error interface {
 	Error() string

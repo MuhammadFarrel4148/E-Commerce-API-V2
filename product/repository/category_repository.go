@@ -41,7 +41,11 @@ func (r *categoryRepository) findProduct(ctx context.Context, ID uint) (*model.C
 
 func (r *categoryRepository) CreateCategory(ctx context.Context, category *model.Category) error {
 	if err := r.db.WithContext(ctx).Create(category).Error; err != nil {
-		return err
+		if errors.Is(err, gorm.ErrDuplicatedKey) {
+			return exceptions.ErrNameFound
+		} else {
+			return err
+		}
 	}
 
 	return nil

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"product/model"
 	"product/repository"
 )
@@ -30,6 +31,7 @@ func (s *categoryService) CreateCategoryService(InputCategory model.InputCategor
 	}
 
 	if err := s.repo.CreateCategory(ctx, category); err != nil {
+		fmt.Println(err)
 		return nil, err
 	}
 

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"product/caching"
 	"product/controller"
 	"product/database"
 	"product/repository"
@@ -13,6 +14,8 @@ import (
 )
 
 func main() {
+	caching.ConnectRedis()
+
 	database.ConnectDB()
 	db := database.DB
 
