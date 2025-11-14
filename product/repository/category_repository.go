@@ -1,16 +1,19 @@
 package repository
 
 import (
+	"context"
+	"errors"
+	"product/exceptions"
 	"product/model"
 
 	"gorm.io/gorm"
 )
 
 type CategoryRepository interface {
-	CreateCategory(category *model.Category) error
-	GetCategoryByID(ID uint) (*model.Category, error)
-	UpdateCategoryByID(ID uint, updatesCategory map[string]interface{}) (*model.Category, error)
-	DeleteCategoryByID(ID uint) (*model.Category, error)
+	CreateCategory(ctx context.Context, category *model.Category) error
+	GetCategoryByID(ctx context.Context, ID uint) (*model.Category, error)
+	UpdateCategoryByID(ctx context.Context, ID uint, updatesCategory map[string]interface{}) (*model.Category, error)
+	DeleteCategoryByID(ctx context.Context, ID uint) (*model.Category, error)
 }
 
 type categoryRepository struct {
@@ -21,60 +24,64 @@ func NewCategoryRepository(db *gorm.DB) CategoryRepository {
 	return &categoryRepository{db}
 }
 
-func (r *categoryRepository) CreateCategory(category *model.Category) error {
-	err := r.db.Create(category).Error
+// Helper find product
+func (r *categoryRepository) findProduct(ctx context.Context, ID uint) (*model.Category, error) {
+	var category model.Category
 
-	if err != nil {
+	if err := r.db.WithContext(ctx).First(&category, ID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, exceptions.ErrNotFound
+		} else {
+			return nil, err
+		}
+	}
+
+	return &category, nil
+};
+
+func (r *categoryRepository) CreateCategory(ctx context.Context, category *model.Category) error {
+	if err := r.db.WithContext(ctx).Create(category).Error; err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (r *categoryRepository) GetCategoryByID(ID uint) (*model.Category, error) {
-	var category model.Category
-
-	err := r.db.First(&category, ID).Error
+func (r *categoryRepository) GetCategoryByID(ctx context.Context, ID uint) (*model.Category, error) {
+	category, err := r.findProduct(ctx, ID)
 
 	if err != nil {
 		return nil, err
 	}
 
-	return &category, nil
+	return category, nil
 }
 
-func (r *categoryRepository) UpdateCategoryByID(ID uint, updatesCategory map[string]interface{}) (*model.Category, error) {
+func (r *categoryRepository) UpdateCategoryByID(ctx context.Context, ID uint, updatesCategory map[string]interface{}) (*model.Category, error) {
 	var category model.Category
 
-	err := r.db.Model(&category).Where("category_id = ?", ID).Updates(updatesCategory).Error
+	if err := r.db.WithContext(ctx).Model(&category).Where("category_id = ?", ID).Updates(updatesCategory).Error; err != nil {
+		return nil, err
+	}
+
+	categories, err := r.findProduct(ctx, ID)
 
 	if err != nil {
 		return nil, err
 	}
 
-	err = r.db.First(&category, ID).Error
-
-	if err != nil {
-		return nil, err
-	}
-
-	return &category, nil
+	return categories, nil
 }
 
-func (r *categoryRepository) DeleteCategoryByID(ID uint) (*model.Category, error) {
-	var category model.Category
-
-	err := r.db.First(&category, ID).Error
-
+func (r *categoryRepository) DeleteCategoryByID(ctx context.Context, ID uint) (*model.Category, error) {
+	categories, err := r.findProduct(ctx, ID)
 	if err != nil {
 		return nil, err
 	}
 
-	err = r.db.Delete(&category).Error
-
-	if err != nil {
+	if err := r.db.Delete(categories).Error; err != nil {
 		return nil, err
 	}
 
-	return &category, nil
+	return categories, nil
 }

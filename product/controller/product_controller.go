@@ -57,7 +57,7 @@ func (h *ProductController) CreateProduct(c *gin.Context) {
 
 func (h *ProductController) GetProductByID(c *gin.Context) {
 	ID, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
+	if err != nil || ID <= 0 {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"status": "fail",
 			"error":  "invalid product ID",
@@ -93,7 +93,7 @@ func (h *ProductController) UpdateProductByID(c *gin.Context) {
 	var updateProduct model.UpdateProductInput
 
 	ID, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
+	if err != nil || ID <= 0 {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"status": "fail",
 			"error":  "invalid product ID",
@@ -135,7 +135,7 @@ func (h *ProductController) UpdateProductByID(c *gin.Context) {
 
 func (h *ProductController) DeleteProductByID(c *gin.Context) {
 	ID, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
+	if err != nil || ID <= 0 {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"status": "fail",
 			"error":  "invalid product ID",

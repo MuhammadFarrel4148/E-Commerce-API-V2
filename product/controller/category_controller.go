@@ -2,22 +2,19 @@ package controller
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"product/caching"
+	"product/exceptions"
+	"product/model"
 	"product/service"
 	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
 )
-
-type CategoryOutput struct {
-	CategoryID	uint	`json:"category_id"`
-	Name		string	`json:"name"`
-	Description	string	`json:"description"`
-}
 
 type CategoryController struct {
 	categoryService service.CategoryService
@@ -28,7 +25,7 @@ func NewCategoryController(categoryService service.CategoryService) *CategoryCon
 }
 
 func (h *CategoryController) CreateCategory(c *gin.Context) {
-	var input service.InputCategory
+	var input model.InputCategory
 
 	err := c.ShouldBindJSON(&input)
 	if err != nil {
@@ -57,18 +54,18 @@ func (h *CategoryController) CreateCategory(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, gin.H{
 		"status": "success",
-		"data": category,
+		"data":   category,
 	})
 }
 
 func (h *CategoryController) GetCategoryByID(c *gin.Context) {
-	var categoryOutput CategoryOutput
-	
+	var categoryOutput model.CategoryOutput
+
 	ID, err := strconv.Atoi(c.Param("id"))
 	if err != nil || ID <= 0 {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"status": "fail",
-			"error": err.Error(),
+			"error":  err.Error(),
 		})
 		return
 	}
@@ -81,7 +78,7 @@ func (h *CategoryController) GetCategoryByID(c *gin.Context) {
 		if err != nil {
 			c.JSON(http.StatusOK, gin.H{
 				"status": "success",
-				"data": categoryOutput,
+				"data":   categoryOutput,
 			})
 			return
 		}
@@ -91,11 +88,19 @@ func (h *CategoryController) GetCategoryByID(c *gin.Context) {
 
 	categoryFromDB, err := h.categoryService.GetCategoryByID(uint(ID))
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"status": "success",
-			"error": err.Error(),
-		})
-		return
+		if errors.Is(err, exceptions.ErrNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{
+				"status": "fail",
+				"error":  err.Error(),
+			})
+			return
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"status": "fail",
+				"error":  "terjadi kesalahan pada server kami",
+			})
+			return
+		}
 	}
 
 	err = caching.Set(key, categoryFromDB, 15*time.Minute)
@@ -105,18 +110,18 @@ func (h *CategoryController) GetCategoryByID(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"status": "success",
-		"data": categoryFromDB,
+		"data":   categoryFromDB,
 	})
 }
 
 func (h *CategoryController) UpdateCategoryByID(c *gin.Context) {
-	var input service.UpdateCategory
+	var input model.UpdateCategory
 
 	ID, err := strconv.Atoi(c.Param("id"))
 	if err != nil || ID <= 0 {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"status": "fail",
-			"error": err.Error(),
+			"error":  err.Error(),
 		})
 		return
 	}
@@ -125,18 +130,26 @@ func (h *CategoryController) UpdateCategoryByID(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"status": "fail",
-			"error": err.Error(),
+			"error":  err.Error(),
 		})
 		return
 	}
 
 	category, err := h.categoryService.UpdateCategoryByID(uint(ID), &input)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"status": "fail",
-			"error": err.Error(),
-		})
-		return
+		if errors.Is(err, exceptions.ErrNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{
+				"status": "fail",
+				"error":  err.Error(),
+			})
+			return
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"status": "fail",
+				"error":  err.Error(),
+			})
+			return
+		}
 	}
 
 	key := fmt.Sprintf("category-%d", ID)
@@ -147,7 +160,7 @@ func (h *CategoryController) UpdateCategoryByID(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"status": "success",
-		"data": category,
+		"data":   category,
 	})
 }
 
@@ -156,18 +169,25 @@ func (h *CategoryController) DeleteCategoryByID(c *gin.Context) {
 	if err != nil || ID <= 0 {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"status": "fail",
-			"error": err.Error(),
+			"error":  err.Error(),
 		})
 		return
 	}
 
 	category, err := h.categoryService.DeleteCategoryByID(uint(ID))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"status": "fail",
-			"error": err.Error(),
-		})
-		return
+		if errors.Is(err, exceptions.ErrNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{
+				"status": "fail",
+				"error":  err.Error(),
+			})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"status": "fail",
+				"error":  err.Error(),
+			})
+			return
+		}
 	}
 
 	key := fmt.Sprintf("category-%d", ID)
@@ -178,6 +198,6 @@ func (h *CategoryController) DeleteCategoryByID(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"status": "success",
-		"data": category,
+		"data":   category,
 	})
 }

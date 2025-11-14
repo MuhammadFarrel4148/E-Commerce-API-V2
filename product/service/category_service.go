@@ -1,24 +1,17 @@
 package service
 
 import (
+	"context"
 	"product/model"
 	"product/repository"
 )
 
-type InputCategory struct {
-	Name        string `json:"name" binding:"required"`
-	Description string `json:"description" binding:"required"`
-}
-
-type UpdateCategory struct {
-	Name        *string `json:"name"`
-	Description *string `json:"description"`
-}
+var ctx context.Context
 
 type CategoryService interface {
-	CreateCategoryService(inputCategory InputCategory) (*model.Category, error)
+	CreateCategoryService(inputCategory model.InputCategory) (*model.Category, error)
 	GetCategoryByID(ID uint) (*model.Category, error)
-	UpdateCategoryByID(ID uint, updateCategory *UpdateCategory) (*model.Category, error)
+	UpdateCategoryByID(ID uint, updateCategory *model.UpdateCategory) (*model.Category, error)
 	DeleteCategoryByID(ID uint) (*model.Category, error)
 }
 
@@ -30,15 +23,13 @@ func NewCategoryService(repo repository.CategoryRepository) CategoryService {
 	return &categoryService{repo}
 }
 
-func (s *categoryService) CreateCategoryService(InputCategory InputCategory) (*model.Category, error) {
+func (s *categoryService) CreateCategoryService(InputCategory model.InputCategory) (*model.Category, error) {
 	category := &model.Category{
 		Name:        InputCategory.Name,
 		Description: InputCategory.Description,
 	}
 
-	err := s.repo.CreateCategory(category)
-
-	if err != nil {
+	if err := s.repo.CreateCategory(ctx, category); err != nil {
 		return nil, err
 	}
 
@@ -46,7 +37,7 @@ func (s *categoryService) CreateCategoryService(InputCategory InputCategory) (*m
 }
 
 func (s *categoryService) GetCategoryByID(ID uint) (*model.Category, error) {
-	category, err := s.repo.GetCategoryByID(ID)
+	category, err := s.repo.GetCategoryByID(ctx, ID)
 
 	if err != nil {
 		return nil, err
@@ -55,7 +46,7 @@ func (s *categoryService) GetCategoryByID(ID uint) (*model.Category, error) {
 	return category, nil
 }
 
-func (s *categoryService) UpdateCategoryByID(ID uint, updateCategory *UpdateCategory) (*model.Category, error) {
+func (s *categoryService) UpdateCategoryByID(ID uint, updateCategory *model.UpdateCategory) (*model.Category, error) {
 	updatesMap := make(map[string]interface{})
 
 	if updateCategory.Name != nil {
@@ -66,7 +57,7 @@ func (s *categoryService) UpdateCategoryByID(ID uint, updateCategory *UpdateCate
 		updatesMap["description"] = *updateCategory.Description
 	}
 
-	category, err := s.repo.UpdateCategoryByID(ID, updatesMap)
+	category, err := s.repo.UpdateCategoryByID(ctx, ID, updatesMap)
 
 	if err != nil {
 		return nil, err
@@ -76,7 +67,7 @@ func (s *categoryService) UpdateCategoryByID(ID uint, updateCategory *UpdateCate
 }
 
 func (s *categoryService) DeleteCategoryByID(ID uint) (*model.Category, error) {
-	category, err := s.repo.DeleteCategoryByID(ID)
+	category, err := s.repo.DeleteCategoryByID(ctx, ID)
 
 	if err != nil {
 		return nil, err

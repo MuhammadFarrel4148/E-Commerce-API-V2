@@ -13,7 +13,6 @@ var rdb *redis.Client
 
 func ConnectRedis() {
 	opt, err := redis.ParseURL("redis://localhost:6379/0")
-	
 	if err != nil {
 		panic(err)
 	}
@@ -21,7 +20,6 @@ func ConnectRedis() {
 	rdb = redis.NewClient(opt)
 
 	_, err = rdb.Ping(ctx).Result()
-
 	if err != nil {
 		log.Fatal("Gagal terhubung ke redis:", err)
 	}
