@@ -29,7 +29,52 @@ func ValidateUpdateProduct(inputProduct model.UpdateProductInput) error {
 	}
 
 	if len(errors) > 0 {
-		return &exceptions.ErrValidation {
+		return &exceptions.ErrValidation{
+			Details: errors,
+		}
+	}
+
+	return nil
+}
+
+func ValidateInputInventory(inputInventory model.InputInventory) error {
+	errors := make(map[string]string)
+
+	if inputInventory.StockLevel < 0 {
+		errors["stocklevel"] = "stock can't be negative"
+	}
+
+	if len(errors) > 0 {
+		return &exceptions.ErrValidation{
+			Details: errors,
+		}
+	}
+
+	return nil
+}
+
+func ValidateUpdateInventory(inputInventory *model.UpdateInventory) error {
+	errors := make(map[string]string)
+
+	if *inputInventory.StockLevel < 0 {
+		errors["stocklevel"] = "stock can't be negative"
+	}
+
+	if len(errors) > 0 {
+		return &exceptions.ErrValidation{
+			Details: errors,
+		}
+	}
+
+	return nil
+}
+
+func ValidateUpdateMap(updatesMap map[string]interface{}) error {
+	errors := make(map[string]string)
+
+	if len(updatesMap) == 0 {
+		errors["updatesMap"] = "no change updated"
+		return &exceptions.ErrValidation{
 			Details: errors,
 		}
 	}

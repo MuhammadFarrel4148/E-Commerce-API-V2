@@ -1,16 +1,19 @@
 package repository
 
 import (
+	"context"
+	"errors"
+	"product/exceptions"
 	"product/model"
 
 	"gorm.io/gorm"
 )
 
 type InventoryRepository interface {
-	CreateInventory(inventory *model.Inventory) error
-	GetInventoryByID(ID uint) (*model.Inventory, error)
-	UpdateInventoryByID(ID uint, updatesInventory map[string]interface{}) (*model.Inventory, error)
-	DeleteInventoryByID(ID uint) (*model.Inventory, error)
+	CreateInventory(ctx context.Context, inventory *model.Inventory) error
+	GetInventoryByID(ctx context.Context, ID uint) (*model.Inventory, error)
+	UpdateInventoryByID(ctx context.Context, ID uint, updatesInventory map[string]interface{}) (*model.Inventory, error)
+	DeleteInventoryByID(ctx context.Context, ID uint) (*model.Inventory, error)
 }
 
 type inventoryRepository struct {
@@ -21,21 +24,30 @@ func NewInventoryRepository(db *gorm.DB) InventoryRepository {
 	return &inventoryRepository{db}
 }
 
-func (r *inventoryRepository) CreateInventory(inventory *model.Inventory) error {
-	err := r.db.Create(inventory).Error
-
-	if err != nil {
-		return err
+func (r *inventoryRepository) findInventory(ctx context.Context, inventory *model.Inventory, ID uint) error {
+	if err := r.db.WithContext(ctx).First(&inventory, ID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return exceptions.ErrNotFound
+		}
 	}
 
 	return nil
 }
 
-func (r *inventoryRepository) GetInventoryByID(ID uint) (*model.Inventory, error) {
+func (r *inventoryRepository) CreateInventory(ctx context.Context, inventory *model.Inventory) error {
+	if err := r.db.WithContext(ctx).Create(inventory).Error; err != nil {
+		if errors.Is(err, gorm.ErrDuplicatedKey) {
+			return exceptions.ErrProductIDFound
+		}
+	}
+
+	return nil
+}
+
+func (r *inventoryRepository) GetInventoryByID(ctx context.Context, ID uint) (*model.Inventory, error) {
 	var inventory model.Inventory
 
-	err := r.db.First(&inventory, ID).Error
-
+	err := r.findInventory(ctx, &inventory, ID)
 	if err != nil {
 		return nil, err
 	}
@@ -43,36 +55,27 @@ func (r *inventoryRepository) GetInventoryByID(ID uint) (*model.Inventory, error
 	return &inventory, nil
 }
 
-func (r *inventoryRepository) UpdateInventoryByID(ID uint, updatesInventory map[string]interface{}) (*model.Inventory, error) {
+func (r *inventoryRepository) UpdateInventoryByID(ctx context.Context, ID uint, updatesInventory map[string]interface{}) (*model.Inventory, error) {
 	var inventory model.Inventory
 
-	err := r.db.Model(&inventory).Where("category_id = ?", ID).Updates(updatesInventory).Error
-
-	if err != nil {
+	if err := r.db.Model(&inventory).Where("category_id = ?", ID).Updates(updatesInventory).Error; err != nil {
 		return nil, err
 	}
 
-	err = r.db.First(&inventory, ID).Error
-
-	if err != nil {
+	if err := r.findInventory(ctx, &inventory, ID); err != nil {
 		return nil, err
 	}
 
 	return &inventory, nil
 }
 
-func (r *inventoryRepository) DeleteInventoryByID(ID uint) (*model.Inventory, error) {
+func (r *inventoryRepository) DeleteInventoryByID(ctx context.Context, ID uint) (*model.Inventory, error) {
 	var inventory model.Inventory
-
-	err := r.db.First(&inventory, ID).Error
-
-	if err != nil {
+	if err := r.findInventory(ctx, &inventory, ID); err != nil {
 		return nil, err
 	}
 
-	err = r.db.Delete(&inventory).Error
-
-	if err != nil {
+	if err := r.db.Delete(&inventory).Error; err != nil {
 		return nil, err
 	}
 

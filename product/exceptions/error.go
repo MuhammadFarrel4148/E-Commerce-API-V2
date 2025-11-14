@@ -4,6 +4,7 @@ import "errors"
 
 var ErrNotFound = errors.New("resource not found")
 var ErrNameFound = errors.New("name description found")
+var ErrProductIDFound = errors.New("product id found")
 
 type error interface {
 	Error() string

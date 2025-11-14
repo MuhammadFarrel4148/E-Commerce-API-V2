@@ -1,25 +1,18 @@
 package service
 
 import (
-	"errors"
+	"context"
 	"product/model"
 	"product/repository"
+	"product/validate"
 )
 
-type InputInventory struct {
-	ProductID  uint `json:"product_id"`
-	StockLevel int  `json:"stock_level"`
-}
-
-type UpdateInventory struct {
-	ProductID  *uint `json:"product_id"`
-	StockLevel *int  `json:"stock_level"`
-}
+var ctx context.Context
 
 type InventoryService interface {
-	CreateInventory(inputInventory InputInventory) (*model.Inventory, error)
+	CreateInventory(inputInventory model.InputInventory) (*model.Inventory, error)
 	GetInventoryByID(ID uint) (*model.Inventory, error)
-	UpdateInventoryByID(ID uint, updateInventory *UpdateInventory) (*model.Inventory, error)
+	UpdateInventoryByID(ID uint, updateInventory *model.UpdateInventory) (*model.Inventory, error)
 	DeleteInventoryByID(ID uint) (*model.Inventory, error)
 }
 
@@ -31,9 +24,9 @@ func NewInventoryService(repo repository.InventoryRepository) InventoryService {
 	return &inventoryService{repo}
 }
 
-func (s *inventoryService) CreateInventory(inputInventory InputInventory) (*model.Inventory, error) {
-	if inputInventory.StockLevel < 0 {
-		return nil, errors.New("stock level can't be negative")
+func (s *inventoryService) CreateInventory(inputInventory model.InputInventory) (*model.Inventory, error) {
+	if err := validate.ValidateInputInventory(inputInventory); err != nil {
+		return nil, err
 	}
 
 	inventory := &model.Inventory{
@@ -41,7 +34,7 @@ func (s *inventoryService) CreateInventory(inputInventory InputInventory) (*mode
 		StockLevel: inputInventory.StockLevel,
 	}
 
-	err := s.repo.CreateInventory(inventory)
+	err := s.repo.CreateInventory(ctx, inventory)
 
 	if err != nil {
 		return nil, err
@@ -51,7 +44,7 @@ func (s *inventoryService) CreateInventory(inputInventory InputInventory) (*mode
 }
 
 func (s *inventoryService) GetInventoryByID(ID uint) (*model.Inventory, error) {
-	inventory, err := s.repo.GetInventoryByID(ID)
+	inventory, err := s.repo.GetInventoryByID(ctx, ID)
 
 	if err != nil {
 		return nil, err
@@ -60,9 +53,9 @@ func (s *inventoryService) GetInventoryByID(ID uint) (*model.Inventory, error) {
 	return inventory, nil
 }
 
-func (s *inventoryService) UpdateInventoryByID(ID uint, updateInventory *UpdateInventory) (*model.Inventory, error) {
-	if *updateInventory.StockLevel < 0 {
-		return nil, errors.New("stock level can't be negative")
+func (s *inventoryService) UpdateInventoryByID(ID uint, updateInventory *model.UpdateInventory) (*model.Inventory, error) {
+	if err := validate.ValidateUpdateInventory(updateInventory); err != nil {
+		return nil, err
 	}
 
 	updatesMap := make(map[string]interface{})
@@ -75,11 +68,11 @@ func (s *inventoryService) UpdateInventoryByID(ID uint, updateInventory *UpdateI
 		updatesMap["stock_level"] = *updateInventory.StockLevel
 	}
 
-	if len(updatesMap) == 0 {
-		return nil, errors.New("no change updated")
+	if err := validate.ValidateUpdateMap(updatesMap); err != nil {
+		return nil, err
 	}
 
-	inventory, err := s.repo.UpdateInventoryByID(ID, updatesMap)
+	inventory, err := s.repo.UpdateInventoryByID(ctx, ID, updatesMap)
 
 	if err != nil {
 		return nil, err
@@ -89,8 +82,7 @@ func (s *inventoryService) UpdateInventoryByID(ID uint, updateInventory *UpdateI
 }
 
 func (s *inventoryService) DeleteInventoryByID(ID uint) (*model.Inventory, error) {
-	inventory, err := s.repo.DeleteInventoryByID(ID)
-
+	inventory, err := s.repo.DeleteInventoryByID(ctx, ID)
 	if err != nil {
 		return nil, err
 	}

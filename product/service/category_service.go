@@ -1,13 +1,10 @@
 package service
 
 import (
-	"context"
 	"fmt"
 	"product/model"
 	"product/repository"
 )
-
-var ctx context.Context
 
 type CategoryService interface {
 	CreateCategoryService(inputCategory model.InputCategory) (*model.Category, error)
