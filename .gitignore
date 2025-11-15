@@ -2,3 +2,6 @@
 /users/node_modules/
 /product/.env
 /kubernetes/users/users-secret.yaml
+/infra
+/infra-local
+/cart/.env
